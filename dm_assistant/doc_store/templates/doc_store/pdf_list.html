@@ -1,0 +1,17 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>PDF List</h1>
+  {% if pdf_list %}
+    <ul>
+      {% for pdf in pdf_list %}
+      <li>
+        <a href="{{ pdf.get_absolute_url }}">{{ pdf.title }}</a>
+        ({{pdf.file}})
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>There are no pdfs in the library.</p>
+  {% endif %}
+{% endblock %}

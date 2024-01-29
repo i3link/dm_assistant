@@ -1,0 +1,11 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Title: {{ pdf.title }}</h1>
+  <p><strong>Publisher:</strong> <a href="">{{ pdf.publisher }}</a></p>
+  <!-- author detail link not yet defined -->
+  <p><strong>Authors:</strong> {{ pdf.authors }}</p>
+  <p><strong>License:</strong> {{ pdf.license }}</p>
+  <p><strong>Base System:</strong> {{ pdf.base_system }}</p>
+  <p><strong>file:</strong> {{ pdf.file}}</p>
+{% endblock %}

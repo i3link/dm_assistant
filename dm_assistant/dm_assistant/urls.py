@@ -26,11 +26,12 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('docs/', include('doc_store.urls')),
-]
-
-urlpatterns += [
-    path('', RedirectView.as_view(url='docs/')),
+    path('doc_store/', include('doc_store.urls')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+#Add URL maps to redirect the base URL to our application
+
+urlpatterns += [
+    path('', RedirectView.as_view(url='/doc_store/', permanent=True)),
+]
