@@ -1,0 +1,81 @@
+<h1>Chatbot</h1>
+<div id="conversation">
+    {% for message in conversation %}
+        {% if message.role == 'user' %}
+            <div class="user-messages"><p>You: {{ message.content }}</p></div>
+        {% elif message.role == 'assistant' %}
+            <div class="chatbot-messages"><p>ChatBot: {{ message.content }}</p></div>
+        {% endif %}
+    {% endfor %}
+</div>       
+<form id="chat-form" method="POST" action="{% url 'chatbot_view' %}">
+    {% csrf_token %}
+    <div class="container">
+        <textarea rows="3" class="centered-textarea" id="user-input" type="text" name="user_input" placeholder="Your message"></textarea>
+        <input type="submit" value="Send">
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const conversation = document.getElementById('conversation');
+
+        // Scroll conversation to the bottom
+        conversation.scrollTop = conversation.scrollHeight;
+
+        // Submit the form when the user presses Enter key
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                chatForm.submit();
+            }
+        });
+
+        // Focus on the user input field
+        userInput.focus();
+    });
+</script> 
+
+<style>
+    #conversation {
+        height: 500px;
+        border: 1px solid #000;
+        margin-bottom: 10px;
+        overflow-y: scroll;
+        background-color: #424755;
+    }
+    .container {
+        display: flex;
+    }
+
+    .container textarea {
+        flex: 1;
+        margin-right: 10px;
+        font-size: 16px;
+    }
+
+    .container input[type="submit"] {
+        flex-shrink: 0;
+        background: #10a37f;
+        color: #fff;
+        border: 0px;
+        padding: 8px 16px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .user-messages{
+        width: 100%;
+        padding: 10px;
+        background: #343541;
+        color: #fff;
+    }
+    .chatbot-messages{
+        width: 100%;
+        padding: 10px;
+        background: #444655;
+        color: #fff;
+    }
+
+</style>

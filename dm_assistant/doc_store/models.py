@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+import os
 
 # Create your models here.
 # Create a set of models that will be used to store pdf files for rpg systems. 
@@ -46,3 +47,12 @@ class Pdf(models.Model):
         + " from " + self.publisher.name + " for " \
         + self.base_system.name + " " + self.base_system.version \
         + " under " + self.license.name + " license"
+    #def save(self, *args, **kwargs):
+    #    if self.file:
+    #        ### Generate a vector from the pdf file
+    #        from llama_index import VectorStoreIndex, SimpleDirectoryReader
+    #        documents = SimpleDirectoryReader('pdfs').load_data()
+    #        ## When we add a new pdf, update the index
+    #        models.PDF_INDEX = VectorStoreIndex('pdfs', documents)
+    #
+    #    super(Pdf, self).save(*args, **kwargs)

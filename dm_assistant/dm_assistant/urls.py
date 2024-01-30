@@ -24,6 +24,9 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
 ]
+urlpatterns += [
+    path('', RedirectView.as_view(url='/doc_store/', permanent=True)),
+]
 
 urlpatterns += [
     path('doc_store/', include('doc_store.urls')),
@@ -32,6 +35,3 @@ urlpatterns += [
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 #Add URL maps to redirect the base URL to our application
 
-urlpatterns += [
-    path('', RedirectView.as_view(url='/doc_store/', permanent=True)),
-]
