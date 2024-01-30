@@ -2,18 +2,37 @@ from django.shortcuts import render
 
 from .models import Pdf, BaseSystem, License, Publisher
 from django.views import generic
-from llama_index import VectorStoreIndex, SimpleDirectoryReader
+import os.path
+from llama_index import (
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    StorageContext,
+    load_index_from_storage,
+)
 import os
 from django.shortcuts import render
-from openai import ChatCompletion
 import openai
 from openai import OpenAI
 import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 openai.api_key = os.environ["OPENAI_API_KEY"]
 client = OpenAI()
-DOCUMENTS = SimpleDirectoryReader('pdfs').load_data()
-PDF_INDEX = VectorStoreIndex.from_documents(DOCUMENTS)
+PERSIST_DIR = "./storage"
+
+if not os.path.exists(PERSIST_DIR):
+    # load the documents and create the index
+    DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
+    PDF_INDEX = VectorStoreIndex.from_documents(DOCUMENTS)
+    # store it for later
+    PDF_INDEX.storage_context.persist(persist_dir=PERSIST_DIR)
+else:
+    # load the existing index
+    storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
+    PDF_INDEX = load_index_from_storage(storage_context)
 
 def index(request):
     """View function for home page of site."""
@@ -36,6 +55,7 @@ def chatbot_view(request):
     """View function for search page of site."""
     # Render the HTML template search.html with the data in the context variable
     if PDF_INDEX:
+        chat_engine = PDF_INDEX.as_chat_engine(streaming=True)
         ## We have an active index, so let's use it to help us chat with the user!
         conversation = request.session.get('conversation', [])
 
@@ -53,21 +73,21 @@ def chatbot_view(request):
             prompts.extend(conversation)
 
             # Set up and invoke the ChatGPT model
-            response = client.chat.completions.create(model="gpt-3.5-turbo",
-            messages=prompts
-            )
-            logger = logging.getLogger(__name__)
-            logger.warning(response)            
-            # Extract chatbot replies from the response
+            response = chat_engine.query(user_input)
             
-            #chatbot_replies = [message['message']['content'] for message in response.choices if message['message']['role'] == 'assistant']
-            chatbot_response = response.choices[0].message.content
+            logger = logging.getLogger(__name__)
+            logger.info(f"User inputted: {user_input} and chatbot replied: {response.response}")  
+            
+            # Extract chatbot replies from the response (TODO: let the chatbot reply with multiple messages at once)
+            chatbot_response = response.response
             
             # Append chatbot replies to the conversation
             conversation.append({"role": "assistant", "content": chatbot_response})
 
             # Update the conversation in the session
             request.session['conversation'] = conversation
+
+            logger.warn({'user_input': user_input, 'chatbot_replies': chatbot_response, 'conversation': conversation})
 
             return render(request, 'chat.html', {'user_input': user_input, 'chatbot_replies': chatbot_response, 'conversation': conversation})
         else:
