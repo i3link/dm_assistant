@@ -1,10 +1,12 @@
-<h1>Chatbot</h1>
+{% load markdown_extras %}
+
+<h1>RPG Sage</h1>
 <div id="conversation">
     {% for message in conversation %}
         {% if message.role == 'user' %}
-            <div class="user-messages"><p>You: {{ message.content }}</p></div>
+            <div class="user-messages"><p>You: {{ message.content | markdown | safe }}</p></div>
         {% elif message.role == 'assistant' %}
-            <div class="chatbot-messages"><p>ChatBot: {{ message.content }}</p></div>
+            <div class="chatbot-messages"><p>ChatBot: {{ message.content | markdown | safe }}</p></div>
         {% endif %}
     {% endfor %}
 </div>       
@@ -44,16 +46,21 @@
         border: 1px solid #000;
         margin-bottom: 10px;
         overflow-y: scroll;
-        background-color: #424755;
+        background-color: #26396f;
     }
     .container {
         display: flex;
+    }
+    .h1 {
+        color:#26396f;
+        font-size:1em;
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
     }
 
     .container textarea {
         flex: 1;
         margin-right: 10px;
-        font-size: 16px;
+        font-size: 12px;
     }
 
     .container input[type="submit"] {
@@ -62,20 +69,20 @@
         color: #fff;
         border: 0px;
         padding: 8px 16px;
-        font-size: 14px;
+        font-size: 12px;
         cursor: pointer;
     }
     .user-messages{
         width: 100%;
         padding: 10px;
-        background: #343541;
-        color: #fff;
+        background: #ffffff;
+        color: #494444;
     }
     .chatbot-messages{
         width: 100%;
         padding: 10px;
-        background: #444655;
-        color: #fff;
+        background: #eafbff;
+        color: #000000;
     }
 
 </style>

@@ -27,7 +27,7 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 client = OpenAI()
 PERSIST_DIR = "./storage"
 SERVICE_CONTEXT = ServiceContext.from_defaults(
-    llm=OpenAI(model="gpt-3.5-turbo")
+    llm=OpenAI(model="gpt-4")
 )
 
 if not os.path.exists(PERSIST_DIR):
@@ -71,7 +71,7 @@ def chatbot_view(request):
                 " about an docuemnts related to Pathfinder 2e and the Season of Ghosts adventure."
                 "Here are the relevant documents for the context:\n"
                 "{context_str}"
-                "\nInstruction: Use the previous chat history and the context above, to interact and help the user."
+                "\nInstruction: Use the previous chat history or the context above, to interact and help the user."
             ),
             verbose=True,
         )
