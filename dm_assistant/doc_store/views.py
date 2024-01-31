@@ -8,11 +8,15 @@ from llama_index import (
     SimpleDirectoryReader,
     StorageContext,
     load_index_from_storage,
+    ServiceContext,
 )
+from llama_index.memory import ChatMemoryBuffer
+from llama_index.llms import OpenAI
+
+import openai
 import os
 from django.shortcuts import render
 import openai
-from openai import OpenAI
 import logging
 import sys
 
@@ -22,17 +26,20 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 openai.api_key = os.environ["OPENAI_API_KEY"]
 client = OpenAI()
 PERSIST_DIR = "./storage"
+SERVICE_CONTEXT = ServiceContext.from_defaults(
+    llm=OpenAI(model="gpt-3.5-turbo")
+)
 
 if not os.path.exists(PERSIST_DIR):
     # load the documents and create the index
     DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
-    PDF_INDEX = VectorStoreIndex.from_documents(DOCUMENTS)
+    PDF_INDEX = VectorStoreIndex.from_documents(DOCUMENTS, service_context=SERVICE_CONTEXT)
     # store it for later
     PDF_INDEX.storage_context.persist(persist_dir=PERSIST_DIR)
 else:
     # load the existing index
     storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
-    PDF_INDEX = load_index_from_storage(storage_context)
+    PDF_INDEX = load_index_from_storage(storage_context, service_context=SERVICE_CONTEXT)
 
 def index(request):
     """View function for home page of site."""
@@ -55,7 +62,19 @@ def chatbot_view(request):
     """View function for search page of site."""
     # Render the HTML template search.html with the data in the context variable
     if PDF_INDEX:
-        chat_engine = PDF_INDEX.as_chat_engine(streaming=True)
+        memory = ChatMemoryBuffer.from_defaults(token_limit=15000)
+        chat_engine = PDF_INDEX.as_chat_engine(
+            chat_mode='condense_plus_context', 
+            memory=memory,
+            context_prompt=(
+                "You are a chatbot, able to have normal interactions, as well as talk"
+                " about an docuemnts related to Pathfinder 2e and the Season of Ghosts adventure."
+                "Here are the relevant documents for the context:\n"
+                "{context_str}"
+                "\nInstruction: Use the previous chat history and the context above, to interact and help the user."
+            ),
+            verbose=True,
+        )
         ## We have an active index, so let's use it to help us chat with the user!
         conversation = request.session.get('conversation', [])
 
@@ -73,7 +92,7 @@ def chatbot_view(request):
             prompts.extend(conversation)
 
             # Set up and invoke the ChatGPT model
-            response = chat_engine.query(user_input)
+            response = chat_engine.chat(user_input)
             
             logger = logging.getLogger(__name__)
             logger.info(f"User inputted: {user_input} and chatbot replied: {response.response}")  
@@ -86,8 +105,6 @@ def chatbot_view(request):
 
             # Update the conversation in the session
             request.session['conversation'] = conversation
-
-            logger.warn({'user_input': user_input, 'chatbot_replies': chatbot_response, 'conversation': conversation})
 
             return render(request, 'chat.html', {'user_input': user_input, 'chatbot_replies': chatbot_response, 'conversation': conversation})
         else:
