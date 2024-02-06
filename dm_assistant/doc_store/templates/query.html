@@ -14,7 +14,7 @@
         {% endif %}
     {% endfor %}
 </div>       
-<form id="chat-form" method="POST" action="{% url 'chatbot_view' %}">
+<form id="chat-form" method="POST" action="{% url 'chatbot_query_view' %}">
     {% csrf_token %}
     <div class="container">
         <textarea rows="3" class="centered-textarea" id="user-input" type="text" name="user_input" placeholder="Your message"></textarea>

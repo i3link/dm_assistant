@@ -11,4 +11,8 @@
     <li><strong>PDFs:</strong> {{ num_docs }}</li>
     <li><strong>Publishers:</strong> {{ num_publishers }}</li>
   </ul>
+
+  <p>
+    You have visited this page {{ num_visits }} time{{num_visits|pluralize }},
+  </p>
 {% endblock %}

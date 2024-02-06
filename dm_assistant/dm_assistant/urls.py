@@ -32,6 +32,10 @@ urlpatterns += [
     path('doc_store/', include('doc_store.urls')),
 ]
 
+urlpatterns += [
+    path('accounts/', include('django.contrib.auth.urls')),
+]
+
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 #Add URL maps to redirect the base URL to our application
 
