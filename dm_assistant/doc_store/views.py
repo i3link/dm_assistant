@@ -37,9 +37,7 @@ client = OpenAI()
 PERSIST_DIR = "./storage"
 SERVICE_CONTEXT = ServiceContext.from_defaults(
     llm=OpenAI(model="gpt-4"),
-    chunk_size=256,
-    overlap_size=50,
-)
+    )
 
 if not os.path.exists(PERSIST_DIR):
     # load the documents and create the index
@@ -56,7 +54,6 @@ else:
 DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
 NODES = SERVICE_CONTEXT.node_parser.get_nodes_from_documents(DOCUMENTS)
 
-@login_required
 def index(request):
     """View function for home page of site."""
 
@@ -77,19 +74,39 @@ def index(request):
     # Render the HTML template index.html with the data in the context variable
     return render(request, 'index.html', context=context)
 
+@login_required
 def chatbot_view(request):
     """View function for search page of site."""
     
     # Render the HTML template chat.html with the data in the context variable
     if PDF_INDEX:
         memory = ChatMemoryBuffer.from_defaults()
-        chat_engine = PDF_INDEX.as_chat_engine(
+        v_retriever = VectorIndexRetriever(PDF_INDEX)
+        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=2)
+        
+        retriever_tools = [
+            RetrieverTool.from_defaults(
+                retriever=v_retriever,
+                description="Useful in most cases",
+            ),
+            RetrieverTool.from_defaults(
+                retriever=bm25_retriever,
+                description="Useful if searching about specific information",
+            ),
+        ]
+        retriever = RouterRetriever.from_defaults(
+            retriever_tools=retriever_tools,
+            service_context=SERVICE_CONTEXT,
+            select_multi=True,
+        )
+        chat_engine = PDF_INDEX.as_query_engine(
             chat_mode='context', 
             memory=memory,
             context_prompt=(
                 "You are a chatbot, able to have normal interactions, as well as talk"
                 " about any documents related to Pathfinder 2e and the Season of Ghosts adventure."
             ),
+            retriever=retriever,
             verbose=True,
         )
         ## We have an active index, so let's use it to help us chat with the user!
@@ -109,7 +126,7 @@ def chatbot_view(request):
             prompts.extend(conversation)
 
             # Set up and invoke the ChatGPT model
-            response = chat_engine.chat(user_input)
+            response = chat_engine.query(user_input)
             
             logger = logging.getLogger(__name__)
             logger.info(f"User inputted: {user_input} and chatbot replied: {response.response}")  
@@ -125,9 +142,10 @@ def chatbot_view(request):
 
             return render(request, 'chat.html', {'user_input': user_input, 'chatbot_replies': chatbot_response, 'conversation': conversation})
         else:
-            request.session.clear()
+            #request.session.clear()
             return render(request, 'chat.html', {'conversation': conversation})
 
+@login_required
 def chatbot_query_view(request):
     """View function for search page of site."""
     
@@ -197,7 +215,6 @@ def chatbot_query_view(request):
 
             return render(request, 'query.html', {'user_input': user_input, 'chatbot_replies': chatbot_responses, 'conversation': conversation})
         else:
-            request.session.clear()
             return render(request, 'query.html', {'conversation': conversation})
 
 class PdfListView(LoginRequiredMixin, generic.ListView):

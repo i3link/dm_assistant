@@ -24,7 +24,7 @@
             <ul class="sidebar-nav">
                 <li><a href="{% url 'index' %}">Home</a></li>
                 <li><a href="{% url 'pdfs' %}">All Pdfs</a></li>
-                <li><a href="">All publishers</a></li>
+                <li><a href="{% url 'chatbot_query_view' %}">Query Bot (test)</a></li>
                 <li><a href="{% url 'chatbot_view' %}">Chat</a></li>
             </ul>
             {% if user.is_authenticated %}
@@ -34,7 +34,7 @@
                 <button type="submit">Log Out</button>
               </form>
             {% else %}
-              <li><a href="{% url 'login' %}?next={{ request.path }}">Login</a></li>
+              <li><a href="{% url 'login' %}">Login</a></li>
             {% endif %}
          </ul>
             {% endblock %}
