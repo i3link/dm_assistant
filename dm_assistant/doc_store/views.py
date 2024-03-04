@@ -4,6 +4,9 @@ from .models import Pdf, BaseSystem, License, Publisher
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .pdf_reader import PDF2Reader
+from llama_index.tools import RetrieverTool
+from llama_index.retrievers import RouterRetriever
+
 import json
 
 
@@ -16,7 +19,7 @@ from llama_index import (
     load_index_from_storage,
     ServiceContext,
 )
-from llama_index.retrievers import VectorIndexRetriever
+from llama_index.retrievers import VectorIndexRetriever, BM25Retriever
 from llama_index.memory import ChatMemoryBuffer
 from llama_index.llms import OpenAI
 
@@ -34,6 +37,8 @@ client = OpenAI()
 PERSIST_DIR = "./storage"
 SERVICE_CONTEXT = ServiceContext.from_defaults(
     llm=OpenAI(model="gpt-4"),
+    chunk_size=256,
+    overlap_size=50,
 )
 
 if not os.path.exists(PERSIST_DIR):
@@ -47,6 +52,9 @@ else:
     # load the existing index
     storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
     PDF_INDEX = load_index_from_storage(storage_context, service_context=SERVICE_CONTEXT)
+
+DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
+NODES = SERVICE_CONTEXT.node_parser.get_nodes_from_documents(DOCUMENTS)
 
 @login_required
 def index(request):
@@ -125,7 +133,25 @@ def chatbot_query_view(request):
     
     # Render the HTML template chat.html with the data in the context variable
     if PDF_INDEX:
-        retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=20)        
+        v_retriever = VectorIndexRetriever(PDF_INDEX)
+        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=2)
+        
+        retriever_tools = [
+            RetrieverTool.from_defaults(
+                retriever=v_retriever,
+                description="Useful in most cases",
+            ),
+            RetrieverTool.from_defaults(
+                retriever=bm25_retriever,
+                description="Useful if searching about specific information",
+            ),
+        ]
+        retriever = RouterRetriever.from_defaults(
+            retriever_tools=retriever_tools,
+            service_context=SERVICE_CONTEXT,
+            select_multi=True,
+        )
+
         ## We have an active index, so let's use it to help us chat with the user!
         conversation = request.session.get('conversation', [])
 
