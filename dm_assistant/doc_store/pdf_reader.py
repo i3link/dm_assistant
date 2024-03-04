@@ -14,11 +14,11 @@ from llama_index.schema import Document
 
 
 class PDF2Reader(BaseReader):
-    """PDF parser."""
+    """PDF2 parser."""
 
     def __init__(self, return_full_document: Optional[bool] = False) -> None:
         """
-        Initialize PDFReader.
+        Initialize PDF2Reader.
         """
         self.return_full_document = return_full_document
 
