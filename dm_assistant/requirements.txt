@@ -27,9 +27,9 @@ multidict==6.0.4
 mypy-extensions==1.0.0
 nltk
 numpy
-openai==1.10.0
+openai
 packaging==23.2
-pandas==2.2.0
+pandas
 pydantic==2.6.0
 pydantic-core==2.16.1
 pypdf==4.0.1
