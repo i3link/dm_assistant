@@ -10,7 +10,7 @@
         {% if message.role == 'user' %}
             <div class="user-messages"><p>You: {{ message.content | markdown | safe }}</p></div>
         {% elif message.role == 'assistant' %}
-            <div class="chatbot-messages"><p>ChatBot: {{ message.content | markdown | safe }}</p></div>
+            <div class="chatbot-messages"><p>SoG Chatbot: {{ message.content | markdown | safe }}</p></div>
         {% endif %}
     {% endfor %}
 </div>       
