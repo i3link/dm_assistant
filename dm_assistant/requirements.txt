@@ -56,7 +56,7 @@ python-dotenv==1.0.1
 dj-database-url==2.1.0
 psycopg2-binary==2.9.9
 whitenoise==6.6.0
-dj-database-url==0.5.0
+dj-database-url
 Django==4.0.2
 gunicorn==20.0.4
 psycopg2-binary==2.8.6
