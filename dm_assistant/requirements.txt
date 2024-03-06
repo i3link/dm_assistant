@@ -62,3 +62,4 @@ gunicorn==20.0.4
 psycopg2-binary
 wheel==0.35.1
 whitenoise
+rank-bm25
