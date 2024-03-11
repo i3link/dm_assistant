@@ -87,11 +87,11 @@ def chatbot_view(request):
         retriever_tools = [
             RetrieverTool.from_defaults(
                 retriever=v_retriever,
-                description="Useful in most cases",
+                description="Useful when having a general conversation",
             ),
             RetrieverTool.from_defaults(
                 retriever=bm25_retriever,
-                description="Useful if searching about specific information",
+                description="Useful for most queries, especially when searching for specific information.",
             ),
         ]
         retriever = RouterRetriever.from_defaults(
