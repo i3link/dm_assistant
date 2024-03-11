@@ -72,4 +72,3 @@ dependencies:
       - urllib3==2.2.0
       - wrapt==1.16.0
       - yarl==1.9.4
-prefix: /Users/blink/anaconda3/envs/dm_assistant

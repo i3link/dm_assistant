@@ -1,0 +1,1 @@
+web: python manage.py migrate && python manage.py collectstatic --no-input && gunicorn dm_assistant.wsgi --timeout 240
