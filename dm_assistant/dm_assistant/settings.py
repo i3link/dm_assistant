@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY',
 DEBUG = os.environ.get('DJANGO_DEBUG', '') != 'False'
 
 ALLOWED_HOSTS = ['dmassistant-production.up.railway.app', '127.0.0.1', 'www.rpgsage.ai', 'rpgsage.ai']
-CSRF_TRUSTED_ORIGINS = ['https://dmassistant-production.up.railway.app']
+CSRF_TRUSTED_ORIGINS = ['https://dmassistant-production.up.railway.app','www.rpgsage.ai', 'rpgsage.ai']
 
 
 # Application definition
