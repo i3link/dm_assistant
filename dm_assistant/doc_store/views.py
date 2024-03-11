@@ -50,8 +50,8 @@ else:
     # load the existing index
     storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
     PDF_INDEX = load_index_from_storage(storage_context, service_context=SERVICE_CONTEXT)
+    DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
 
-DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
 NODES = SERVICE_CONTEXT.node_parser.get_nodes_from_documents(DOCUMENTS)
 
 def index(request):
@@ -82,16 +82,16 @@ def chatbot_view(request):
     if PDF_INDEX:
         memory = ChatMemoryBuffer.from_defaults()
         v_retriever = VectorIndexRetriever(PDF_INDEX)
-        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=2)
+        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=5)
         
         retriever_tools = [
             RetrieverTool.from_defaults(
                 retriever=v_retriever,
-                description="Useful when having a general conversation",
+                description="Useful nearly all the time.",
             ),
             RetrieverTool.from_defaults(
                 retriever=bm25_retriever,
-                description="Useful for most queries, especially when searching for specific information.",
+                description="Useful for very specific information about locations, items, characters, or npcs.",
             ),
         ]
         retriever = RouterRetriever.from_defaults(
@@ -104,9 +104,9 @@ def chatbot_view(request):
             memory=memory,
             context_prompt=(
                 "You are a chatbot, able to have normal interactions, as well as talk"
-                " about any documents related to Pathfinder 2e and the Season of Ghosts adventure."
-            ),
-            retriever=retriever,
+                " about any documents related to Pathfinder 2e and the Season of Ghosts adventure.  When you give an answer to a question, make sure to detail the response exactly, as the rules in pathfinder are complicated. "
+                " this explanation should include step by step instructions, and any relevant rules or tables."),
+            retriever=bm25_retriever,
             verbose=True,
         )
         ## We have an active index, so let's use it to help us chat with the user!
