@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .pdf_reader import PDF2Reader
 from llama_index.tools import RetrieverTool
 from llama_index.retrievers import RouterRetriever
+from llama_index.response_synthesizers import get_response_synthesizer
 
 import json
 
@@ -22,6 +23,8 @@ from llama_index import (
 from llama_index.retrievers import VectorIndexRetriever, BM25Retriever
 from llama_index.memory import ChatMemoryBuffer
 from llama_index.llms import OpenAI
+from llama_index.callbacks.global_handlers import set_global_handler
+
 
 import openai
 import os
@@ -31,6 +34,8 @@ import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
+
+set_global_handler("simple")
 
 openai.api_key = os.environ["OPENAI_API_KEY"]
 client = OpenAI()
@@ -73,7 +78,6 @@ def index(request):
 
     # Render the HTML template index.html with the data in the context variable
     return render(request, 'index.html', context=context)
-
 @login_required
 def chatbot_view(request):
     """View function for search page of site."""
@@ -81,7 +85,7 @@ def chatbot_view(request):
     # Render the HTML template chat.html with the data in the context variable
     if PDF_INDEX:
         memory = ChatMemoryBuffer.from_defaults()
-        v_retriever = VectorIndexRetriever(PDF_INDEX)
+        v_retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=5)
         bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=5)
         
         retriever_tools = [
@@ -99,6 +103,10 @@ def chatbot_view(request):
             service_context=SERVICE_CONTEXT,
             select_multi=True,
         )
+
+
+        response_synthesizer = get_response_synthesizer(response_mode="refine")
+        
         chat_engine = PDF_INDEX.as_query_engine(
             chat_mode='context', 
             memory=memory,
@@ -106,8 +114,9 @@ def chatbot_view(request):
                 "You are a chatbot, able to have normal interactions, as well as talk"
                 " about any documents related to Pathfinder 2e and the Season of Ghosts adventure.  When you give an answer to a question, make sure to detail the response exactly, as the rules in pathfinder are complicated. "
                 " this explanation should include step by step instructions, and any relevant rules or tables."),
-            retriever=bm25_retriever,
+            retriever=retriever,
             verbose=True,
+            response_synthesizer=response_synthesizer,
         )
         ## We have an active index, so let's use it to help us chat with the user!
         conversation = request.session.get('conversation', [])
