@@ -22,9 +22,6 @@
         <div class="col-sm-2">
             {% block sidebar %}
             <ul class="sidebar-nav">
-                <li><a href="{% url 'index' %}">Home</a></li>
-                <li><a href="{% url 'pdfs' %}">All Pdfs</a></li>
-                <li><a href="{% url 'chatbot_query_view' %}">Query Bot (test)</a></li>
                 <li><a href="{% url 'chatbot_view' %}">Chat</a></li>
             </ul>
             {% if user.is_authenticated %}
