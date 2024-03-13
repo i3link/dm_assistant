@@ -10,6 +10,8 @@ from llama_index.core.tools import RetrieverTool
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.base.llms.types import ChatMessage
+from llama_index.core.selectors import LLMMultiSelector
+
 
 import json
 
@@ -90,7 +92,7 @@ def chatbot_view(request):
     
     # Render the HTML template chat.html with the data in the context variable
     if PDF_INDEX:
-        memory = ChatMemoryBuffer.from_defaults()
+        memory = ChatMemoryBuffer.from_defaults(token_limit=10000)
         v_retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=10)
         bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=10)
         
@@ -109,10 +111,11 @@ def chatbot_view(request):
            retriever_tools=retriever_tools,
            service_context=SERVICE_CONTEXT,
            select_multi=True,
+           selector=LLMMultiSelector.from_defaults()
         )
 
 
-        response_synthesizer = get_response_synthesizer(response_mode="refine")
+        #response_synthesizer = get_response_synthesizer(response_mode="refine")
         
         chat_engine = ContextChatEngine(
             memory=memory,
