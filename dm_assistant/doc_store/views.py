@@ -3,27 +3,31 @@ from django.shortcuts import render
 from .models import Pdf, BaseSystem, License, Publisher
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .pdf_reader import PDF2Reader
-from llama_index.tools import RetrieverTool
-from llama_index.retrievers import RouterRetriever
-from llama_index.response_synthesizers import get_response_synthesizer
+from llama_index.core.retrievers import RouterRetriever
+from llama_index.core.response_synthesizers import get_response_synthesizer
+from llama_index.postprocessor.cohere_rerank import CohereRerank
+from llama_index.core.tools import RetrieverTool
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.chat_engine import ContextChatEngine
+from llama_index.core.base.llms.types import ChatMessage
 
 import json
 
 
 from django.views import generic
 import os.path
-from llama_index import (
+from llama_index.core import (
     VectorStoreIndex,
     SimpleDirectoryReader,
     StorageContext,
     load_index_from_storage,
     ServiceContext,
 )
-from llama_index.retrievers import VectorIndexRetriever, BM25Retriever
-from llama_index.memory import ChatMemoryBuffer
-from llama_index.llms import OpenAI
-from llama_index.callbacks.global_handlers import set_global_handler
+from llama_index.retrievers.bm25 import BM25Retriever
+from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.llms.openai import OpenAI
+from llama_index.core.callbacks.global_handlers import set_global_handler
 
 
 import openai
@@ -37,8 +41,8 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 set_global_handler("simple")
 
-openai.api_key = os.environ["OPENAI_API_KEY"]
 client = OpenAI()
+openai.api_key = os.environ["OPENAI_API_KEY"]
 PERSIST_DIR = "./storage"
 SERVICE_CONTEXT = ServiceContext.from_defaults(
     llm=OpenAI(model="gpt-4"),
@@ -58,6 +62,8 @@ else:
     DOCUMENTS = SimpleDirectoryReader("pdfs").load_data()
 
 NODES = SERVICE_CONTEXT.node_parser.get_nodes_from_documents(DOCUMENTS)
+cohere_rerank = CohereRerank(api_key=os.environ["COHERE_API_KEY"], top_n=3)
+
 
 def index(request):
     """View function for home page of site."""
@@ -85,38 +91,39 @@ def chatbot_view(request):
     # Render the HTML template chat.html with the data in the context variable
     if PDF_INDEX:
         memory = ChatMemoryBuffer.from_defaults()
-        v_retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=5)
-        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=5)
+        v_retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=10)
+        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=10)
         
         retriever_tools = [
-            RetrieverTool.from_defaults(
-                retriever=v_retriever,
-                description="Useful nearly all the time.",
-            ),
-            RetrieverTool.from_defaults(
-                retriever=bm25_retriever,
-                description="Useful for very specific information about locations, items, characters, or npcs.",
-            ),
+           RetrieverTool.from_defaults(
+               retriever=v_retriever,
+               description="Useful nearly all the time.",
+           ),
+           RetrieverTool.from_defaults(
+               retriever=bm25_retriever,
+               description="Useful for very specific information about locations, items, characters, or npcs.",
+           ),
         ]
+
         retriever = RouterRetriever.from_defaults(
-            retriever_tools=retriever_tools,
-            service_context=SERVICE_CONTEXT,
-            select_multi=True,
+           retriever_tools=retriever_tools,
+           service_context=SERVICE_CONTEXT,
+           select_multi=True,
         )
 
 
         response_synthesizer = get_response_synthesizer(response_mode="refine")
         
-        chat_engine = PDF_INDEX.as_query_engine(
-            chat_mode='context', 
+        chat_engine = ContextChatEngine(
             memory=memory,
-            context_prompt=(
-                "You are a chatbot, able to have normal interactions, as well as talk"
-                " about any documents related to Pathfinder 2e and the Season of Ghosts adventure.  When you give an answer to a question, make sure to detail the response exactly, as the rules in pathfinder are complicated. "
-                " this explanation should include step by step instructions, and any relevant rules or tables."),
+            prefix_messages = [ChatMessage(role='system', content="""You are a chatbot, able to have normal interactions, as well as talk
+                about any documents related to Pathfinder 2e and the Season of Ghosts adventure.  When you give an answer to a question, make sure to detail the response exactly, as the rules in pathfinder are complicated. 
+                this explanation should include step by step instructions, and any relevant rules or tables.""")],
             retriever=retriever,
-            verbose=True,
-            response_synthesizer=response_synthesizer,
+            llm=OpenAI(model="gpt-4"),
+            #verbose=True,
+            #response_synthesizer=response_synthesizer,
+            node_postprocessors=[cohere_rerank],
         )
         ## We have an active index, so let's use it to help us chat with the user!
         conversation = request.session.get('conversation', [])
@@ -135,7 +142,7 @@ def chatbot_view(request):
             prompts.extend(conversation)
 
             # Set up and invoke the ChatGPT model
-            response = chat_engine.query(user_input)
+            response = chat_engine.chat(user_input)
             
             logger = logging.getLogger(__name__)
             logger.info(f"User inputted: {user_input} and chatbot replied: {response.response}")  
