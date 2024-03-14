@@ -38,7 +38,7 @@ from django.shortcuts import render
 import logging
 import sys
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 set_global_handler("simple")
@@ -47,7 +47,7 @@ client = OpenAI()
 openai.api_key = os.environ["OPENAI_API_KEY"]
 PERSIST_DIR = "./storage"
 SERVICE_CONTEXT = ServiceContext.from_defaults(
-    llm=OpenAI(model="gpt-4"),
+    llm=OpenAI(model="gpt-3.5-turbo"),
     )
 
 if not os.path.exists(PERSIST_DIR):
@@ -92,9 +92,9 @@ def chatbot_view(request):
     
     # Render the HTML template chat.html with the data in the context variable
     if PDF_INDEX:
-        memory = ChatMemoryBuffer.from_defaults(token_limit=10000)
-        v_retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=10)
-        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=10)
+        memory = ChatMemoryBuffer.from_defaults(token_limit=5000)
+        v_retriever = VectorIndexRetriever(PDF_INDEX, similarity_top_k=5)
+        bm25_retriever = BM25Retriever.from_defaults(nodes=NODES, similarity_top_k=5)
         
         retriever_tools = [
            RetrieverTool.from_defaults(
@@ -123,7 +123,7 @@ def chatbot_view(request):
                 about any documents related to Pathfinder 2e and the Season of Ghosts adventure.  When you give an answer to a question, make sure to detail the response exactly, as the rules in pathfinder are complicated. 
                 this explanation should include step by step instructions, and any relevant rules or tables.""")],
             retriever=retriever,
-            llm=OpenAI(model="gpt-4"),
+            llm=OpenAI(model="gpt-3.5-turbo"),
             #verbose=True,
             #response_synthesizer=response_synthesizer,
             node_postprocessors=[cohere_rerank],
